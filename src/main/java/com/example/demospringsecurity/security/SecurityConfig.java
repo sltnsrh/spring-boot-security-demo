@@ -1,24 +1,24 @@
 package com.example.demospringsecurity.security;
 
-import com.example.demospringsecurity.security.jwt.JwtConfigurer;
+import com.example.demospringsecurity.security.jwt.JwtTokenFilter;
 import com.example.demospringsecurity.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
-    private static final String ADMIN_ENDPOINT = "/api/admin/**";
-    private static final String AUTH_ENDPOINTS = "/api/auth/**";
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
@@ -29,12 +29,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                .antMatchers(AUTH_ENDPOINTS).permitAll()
-                .antMatchers(ADMIN_ENDPOINT).hasAuthority("ADMIN")
-                //.antMatchers(HttpMethod.PUT, "/api/users").hasAuthority("ADMIN")
-                .anyRequest().authenticated()
-                .and()
-                .apply(new JwtConfigurer(jwtTokenProvider));
+                .antMatchers("/api/auth/**").permitAll()
+                .antMatchers("/api/admin/**").hasAuthority("ADMIN")
+                .antMatchers(HttpMethod.PUT, "/api/users/**").hasAuthority("ADMIN")
+                .anyRequest().authenticated();
+        JwtTokenFilter jwtTokenFilter = new JwtTokenFilter(jwtTokenProvider);
+        http.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);
     }
 
     @Bean
